@@ -1,0 +1,137 @@
+INIT DATA - STATIC DEFINITIONS
+File: kernel/init/data.asm
+Author: arfy slowy
+
+OVERVIEW
+Central data repository for initialization: display strings, error
+messages, semaphores, VFS directory structure, preloaded file
+binaries, and the kernel services startup list.
+
+VARIABLE LAYOUT (in assembly order)
+
++--------------------------------------------+
+| Display strings (null-terminated, with _end)|
+| - welcome, video, font, memory, storage    |
++--------------------------------------------+
+| Error message strings                      |
+| - memory_low, acpi, acpi_corrupted,        |
+|   apic, ioapic                             |
++--------------------------------------------+
+| Status message strings                     |
+| - acpi_search, acpi_search_found           |
++--------------------------------------------+
+| Semaphores (5 bytes)                       |
+| - apic, ioapic, smp, ap, global (data.asm) |
++--------------------------------------------+
+| Counters (2 bytes)                         |
+| - ap_count, apic_id_highest                |
++--------------------------------------------+
+| Services list                              |
+| - tresher, tx, network, HTTP               |
++--------------------------------------------+
+| VFS directory structure                    |
+| - [/bin, 4 bytes] [/dev, 4 bytes] [0]     |
++--------------------------------------------+
+| VFS files table                            |
+| - 3 entries + terminator                   |
+|   [/bin/init] [/bin/shell] [/bin/wello]   |
++--------------------------------------------+
+| Embedded binaries                          |
+| - init (incbin "build/init")              |
+| - shell (incbin "build/shell")            |
+| - wello (incbin "build/wello")            |
++--------------------------------------------+
+| Boot trampoline                            |
+| - boot (incbin "build/boot")              |
++--------------------------------------------+
+
+DISPLAY STRINGS (boot output, shown in order)
+
+Welcome:     kernel_init_string_welcome
+             "[green]Welcome to Luna OS![gray] (v1.100 x86_64)[newline]"
+
+Video:       kernel_init_string_video
+             "[green]::[default] Video resolution at [white]"
+             kernel_init_string_video_separator "[default]x[white]"
+
+Font:        kernel_init_string_video_font
+             "[green]::[default] Font: [default]"
+
+Memory:      kernel_init_string_memory_size
+             "[green]::[default] Available [white]"
+             kernel_init_string_memory_format
+             "[default] KiB of RAM memory.[newline]"
+
+Storage:     kernel_init_string_storage_ide
+             "[green]::[default] IDE storage devices:[newline]"
+             kernel_init_string_storage_ide_hd " " (one space prefix)
+             kernel_init_string_storage_ide_hd_path "/dev/hd"
+             kernel_init_string_storage_ide_hd_letter "a" (incremented)
+             kernel_init_string_storage_ide_size " of size [white]"
+             kernel_init_string_storage_ide_format " KiB[newline]"
+
+SEMAPHORE USAGE
+
+kernel_init_apic_semaphore   -- Lock for APIC MMIO register access
+kernel_init_ioapic_semaphore -- Lock for IO-APIC register access
+kernel_init_smp_semaphore    -- BSP vs AP path selector (FALSE=BSP, TRUE=AP)
+kernel_init_ap_semaphore     -- AP boot synchronization barrier
+kernel_init_semaphore        -- (in kernel/data.asm) Global init done flag
+
+SERVICES LIST (kernel_init_services_list)
+
+List format: array of KERNEL_INIT_STRUCTURE_SERVICE triples, terminated
+by dq STATIC_EMPTY:
+
+  +0x00  .pointer  resb 8   -- entry point
+  +0x08  .length   resb 1   -- name string length
+  +0x09  .name:             -- name string (variable)
+
+Order  Module         Name       Function
+-----  ------         ----       --------
+  1    service_tresher "tresher"  Task reaper (reclaims closed task slots)
+
+Services run as kernel tasks. Started sequentially in init/services.asm.
+The name string is passed to kernel_task_add for task identification.
+Only tresher is started at boot — service_tx, service_network, and
+service_http were removed from the boot-time services list.
+
+VFS DIRECTORY STRUCTURE (kernel_init_vfs_directory_structure)
+
+Format: [length_byte][path_bytes] per entry, 0x00 terminator
+
+Entry 1: db 0x04, "/bin"     -> creates /bin directory
+Entry 2: db 0x04, "/dev"     -> creates /dev directory
+End:     db STATIC_EMPTY
+
+VFS FILES TABLE (kernel_init_vfs_files)
+
+Format per entry (KERNEL_INIT_STRUCTURE_VFS_FILE):
++0x00: .data_pointer qword  -- pointer to embedded binary data
++0x08: .size         qword  -- size of binary data in bytes
++0x10: .length       byte   -- length of path string
++0x11: .path         var    -- path string (e.g. "/bin/init")
+Entry size: .SIZE = 17 + path_length
+
+Table terminated by dq STATIC_EMPTY
+
+Entry  Path           Binary                 Source
+-----  ----           ------                 ------
+  1    /bin/init      kernel_init_vfs_file_init  incbin "build/init"
+  2    /bin/shell     kernel_init_vfs_file_shell incbin "build/shell"
+  3    /bin/wello     kernel_init_vfs_file_hello incbin "build/wello"
+
+EMBEDDED BINARY: kernel_init_boot_file
+  incbin "build/boot" -- SMP AP boot trampoline
+  Loaded at 0x8000 during SMP init. Contains 16-bit real-mode code
+  that transitions APs to 64-bit long mode.
+
+BOOT OUTPUT SEQUENCE
+
+[green]Welcome to Luna OS![gray] (v1.100 x86_64)
+[green]::[default] Video resolution at [white]640x480
+[green]::[default] Font: [default]<font_name>
+[green]::[default] Available [white]2048000[default] KiB of RAM memory.
+[green]::[default] IDE storage devices:
+ /dev/hda of size [white]2097152[default] KiB
+ /dev/hdb of size [white]2097152[default] KiB

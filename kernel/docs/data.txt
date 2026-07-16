@@ -1,0 +1,104 @@
+KERNEL DATA STRUCTURES
+File: kernel/data.asm
+Author: arfy slowy
+
+OVERVIEW
+Contains global data structures for GDT, TSS, and IDT headers used by the kernel.
+
+GDT HEADER
+  kernel_gdt_header:
+    - limit: 2 bytes (set to KERNEL_PAGE_SIZE_byte = 4096)
+    - address: 8 bytes (linear address, filled by init)
+  
+  Note: Limit is set to full page size, not actual GDT size.
+        This allows room for future expansion.
+  
+  Alignment: 8 bytes (QWORD)
+
+TSS (Task State Segment)
+  kernel_gdt_tss_bsp_selector: 2 bytes (TSS selector for bootstrap processor)
+  kernel_gdt_tss_cpu_selector: 2 bytes (TSS selector for CPU)
+  
+  TSS Table (kernel_gdt_tss_table):
+    - 4 bytes: Reserved (0)
+    - 8 bytes: RSP0 = KERNEL_STACK_pointer (stack for ring 0 interrupts)
+    - 92 bytes: Reserved/interrupt stack table (all zeros)
+    
+  Size: 104 bytes total
+  Alignment: 8 bytes (QWORD)
+
+IDT HEADER
+  kernel_idt_header:
+    - limit: 2 bytes (set to KERNEL_PAGE_SIZE_byte = 4096)
+    - address: 8 bytes (linear address, filled by init)
+  
+  Note: Limit is set to full page size, not actual IDT size.
+        This allows room for future expansion.
+  
+  Alignment: 8 bytes (QWORD)
+
+STRING CONSTANTS
+  kernel_string_space  - ASCII space (0x20)
+  kernel_string_new_line - ASCII new line (0x0A)
+  kernel_string_dot    - ASCII dot (0x2E)
+  kernel_string_welcome - Blue color escape + "welcome cik!" (blue colored via STATIC_COLOR_ASCII_BLUE_LIGHT)
+  kernel_init_string_name - "luna" (kernel name from %define KERNEL_name)
+
+EXEC
+  kernel_init_exec     - "/bin/init" (path to initial userspace executable)
+  kernel_init_exec_end - end marker for length calculation
+
+DEBUG STRING CONSTANTS (used when %ifdef DEBUG is active)
+  kernel_debug_string_irq          - "IRQ"
+  kernel_debug_string_tx_empty     - "TX empty\n"
+  kernel_debug_string_rx           - "RX"
+  kernel_debug_string_ipc_insert   - "IPC+|"
+  kernel_debug_string_ipc_remove   - "IPC-|"
+  kernel_debug_string_network      - "Network|"
+  kernel_debug_string_ip           - "IPv4|"
+  kernel_debug_string_arp          - "ARP|"
+  kernel_debug_string_icmp         - "ICMP|"
+  Each constant is followed by a corresponding _end label for length calculation.
+
+DEBUG STRING CONSTANTS (kernel/debug.asm)
+  kernel_debug_string_welcome       - colored "ESC to enter debug mode"
+  kernel_debug_string_process_name  - colored "Process name " + gray "(PID)"
+  kernel_debug_string_pid           - " ("
+  kernel_debug_string_pid_close     - ")\n"
+  kernel_debug_string_eflags        - colored "Eflags: "
+  kernel_debug_string_memory        - "Address  Memory  Content\n" header
+  kernel_debug_string_task           - "Task queue properties (Size/Task Count/Free)\n"
+  kernel_debug_string_separator      - gray "/" separator
+  kernel_debug_string_page           - "Pages (Total/Used/Free)\n"
+  Register name strings (colored, with leading \n except rax):
+    rax, rbx, rcx, rdx, rsi, rdi, rbp, rsp
+    r8-r15 (3-char names like "r8 " get extra space)
+  Control register strings (colored, with leading \n):
+    cr0, cr2, cr3, cr4
+  Each constant is followed by a corresponding _end label for length calculation.
+
+ASSEMBLY TABLE (kernel/debug.asm)
+  kernel_debug_assembly_table: opcode lookup table for disassembly
+    Format per entry: opcode_len, mnemonic_len, opcode[1-4], "mnemonic"
+    Supported: xor, mov, jb, jnb, mov ecx/ebx, int, call, jmp
+    Terminated by STATIC_EMPTY byte
+
+FUNCTIONS (kernel/debug.asm - all annotated with macro_debug)
+  kernel_debug             - Entry point (pushf, task info, regs, memory, task/page info)
+  kernel_debug_assembly    - Disassembly (stub)
+  kernel_debug_page        - Display page allocator stats
+  kernel_debug_task        - Display task queue stats
+  kernel_debug_memory      - 16x16 hex+ASCII dump from kernel_memory_map_address
+  kernel_debug_registers   - Dump all preserved regs with colors
+
+STRUCT: KERNEL_DEBUG_STRUCTURE_PRESERVED
+  16 registers in push order: rax, rbx, rcx, rdx, rsi, rdi, rbp,
+  r8-r15, eflags. (No .rsp — saved via pushf/iretq stack.)
+  Has .SIZE label. Used by kernel_debug_registers to display context.
+
+NOTES
+These structures are initialized during boot:
+- GDT is set up in kernel/init/gdt.asm
+- IDT is set up in kernel/init/idt.asm
+- TSS provides stack switching for interrupts
+- Address fields (dq STATIC_EMPTY) are filled at runtime
