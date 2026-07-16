@@ -88,6 +88,11 @@ kernel_init_vfs_files:
  db 9
  db "/bin/free"
 
+ dq kernel_init_vfs_file_ip
+ dq kernel_init_vfs_file_ip_end - kernel_init_vfs_file_ip
+ db 7
+ db "/bin/ip"
+
  dq STATIC_EMPTY
 
 kernel_init_vfs_file_init incbin "build/init"
@@ -98,6 +103,8 @@ kernel_init_vfs_file_wello incbin "build/wello"
 kernel_init_vfs_file_wello_end:
 kernel_init_vfs_file_free incbin "build/free"
 kernel_init_vfs_file_free_end:
+kernel_init_vfs_file_ip incbin "build/ip"
+kernel_init_vfs_file_ip_end:
 
 kernel_init_boot_file:
  incbin "build/boot"
