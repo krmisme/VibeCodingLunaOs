@@ -101,6 +101,9 @@ kernel_service:
  cmp ax, KERNEL_SERVICE_VIDEO_cursor_set
  je .video_cursor_set
 
+ cmp ax, KERNEL_SERVICE_VIDEO_rect
+ je .video_rect
+
  jmp kernel_service.error
 
 .video_string:
@@ -140,6 +143,12 @@ kernel_service:
  mov qword [kernel_video_cursor], rbx
 
  call kernel_video_cursor_set
+
+ jmp kernel_service.end
+
+.video_rect:
+
+ call kernel_video_rect
 
  jmp kernel_service.end
 

@@ -805,3 +805,73 @@ kernel_video_cursor_switch:
 
  macro_debug "kernel_video_cursor_switch"
 
+
+kernel_video_rect:
+  push rax
+  push rbx
+  push rcx
+  push rdx
+  push rdi
+  push rsi
+  push r8
+  push r9
+  push r10
+  push r11
+
+  cmp rbx, 0
+  jl .exit
+  cmp rcx, 0
+  jl .exit
+  cmp rdx, 0
+  jle .exit
+  cmp r8, 0
+  jle .exit
+
+  mov rax, rbx
+  add rax, rdx
+  cmp rax, qword [kernel_video_width_pixel]
+  ja .exit
+
+  mov rax, rcx
+  add rax, r8
+  cmp rax, qword [kernel_video_height_pixel]
+  ja .exit
+
+  mov rax, rcx
+  push rdx
+  mul qword [kernel_video_scanline_byte]
+  pop rdx
+  mov rdi, qword [kernel_video_framebuffer]
+  add rdi, rax
+
+  shl rbx, 2
+  add rdi, rbx
+
+  mov r10, r8
+.row_loop:
+  mov r11, rdx
+  mov rsi, rdi
+.col_loop:
+  mov dword [rsi], r9d
+  add rsi, 4
+  dec r11
+  jnz .col_loop
+
+  add rdi, qword [kernel_video_scanline_byte]
+  dec r10
+  jnz .row_loop
+
+.exit:
+  pop r11
+  pop r10
+  pop r9
+  pop r8
+  pop rsi
+  pop rdi
+  pop rdx
+  pop rcx
+  pop rbx
+  pop rax
+  ret
+
+  macro_debug "kernel_video_rect"

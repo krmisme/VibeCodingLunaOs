@@ -4,6 +4,7 @@ all:
 	nasm -f bin software/ip.asm -o build/ip
 	nasm -f bin software/wello.asm -o build/wello
 	nasm -f bin software/shell.asm -o build/shell
+	nasm -f bin software/uler.asm -o build/uler
 	nasm -f bin kernel/init/boot.asm -o build/boot
 	nasm -f bin kernel/kernel.asm -o build/kernel -dMULTIBOOT_VIDEO_WIDTH_pixel=640 -dMULTIBOOT_VIDEO_HEIGHT_pixel=480
 	nasm -f bin luna/luna.asm -o build/luna_disk.raw -dMULTIBOOT_VIDEO_WIDTH_pixel=640 -dMULTIBOOT_VIDEO_HEIGHT_pixel=480
@@ -22,4 +23,4 @@ debug:
 
 clean:
 	@echo "clearing"
-	rm -rf build/kernel && rm -rf build/init && rm -rf build/shell && rm -rf build/ip && rm -rf build/wello && rm -rf build/boot && rm -rf build/luna_disk.raw 
+	rm -rf build/kernel && rm -rf build/init && rm -rf build/shell && rm -rf build/ip && rm -rf build/wello && rm -rf build/uler && rm -rf build/boot && rm -rf build/luna_disk.raw 

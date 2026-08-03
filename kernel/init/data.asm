@@ -93,6 +93,11 @@ kernel_init_vfs_files:
  db 7
  db "/bin/ip"
 
+ dq kernel_init_vfs_file_uler
+ dq kernel_init_vfs_file_uler_end - kernel_init_vfs_file_uler
+ db 9
+ db "/bin/uler"
+
  dq STATIC_EMPTY
 
 kernel_init_vfs_file_init incbin "build/init"
@@ -105,8 +110,9 @@ kernel_init_vfs_file_free incbin "build/free"
 kernel_init_vfs_file_free_end:
 kernel_init_vfs_file_ip incbin "build/ip"
 kernel_init_vfs_file_ip_end:
+kernel_init_vfs_file_uler incbin "build/uler"
+kernel_init_vfs_file_uler_end:
 
 kernel_init_boot_file:
  incbin "build/boot"
 kernel_init_boot_file_end:
-
